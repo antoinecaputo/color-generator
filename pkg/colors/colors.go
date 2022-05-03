@@ -1,15 +1,154 @@
 package colors
 
-type ColorTyp struct {
+import (
+	"color-generator/constants"
+	"color-generator/pkg/gohtml"
+	"encoding/json"
+	"fmt"
+	"github.com/bamboutech/golog"
+	"math/rand"
+	"net/http"
+	"os"
+	"strconv"
+)
+
+func GenerationHandler(w http.ResponseWriter, r *http.Request) {
+
+	userId := r.URL.Query().Get("userId")
+	if userId == "" {
+		http.Error(w, "No user id provided", http.StatusBadRequest)
+		return
+	}
+
+	// ■■■■■■■■■■ Colors generation ■■■■■■■■■■
+
+	tmplColors := make(map[int]colorTyp, 5)
+	for i := 0; i < 5; i++ {
+		randIndex := rand.Intn(colorsLength)
+		tmplColors[randIndex] = fctGetColor(randIndex)
+	}
+
+	// ■■■■■■■■■■ HTML Output ■■■■■■■■■■
+
+	templateVar := map[string]interface{}{
+		"userId": userId,
+		"colors": tmplColors,
+	}
+
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	gohtml.FctOutputHTML(w, "./static/index.gohtml", templateVar)
+
+	buff, _ := constants.Log.FctGetBufferContent()
+	constants.Log.FctResetBufferContent()
+	fmt.Println(buff)
+}
+
+func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		buff, _ := constants.Log.FctGetBufferContent()
+		constants.Log.FctResetBufferContent()
+		fmt.Println(buff)
+	}()
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// ■■■■■■■■■■ Get form data ■■■■■■■■■■
+
+	var formData struct {
+		UserId      string            `json:"user_id"`
+		Evaluations map[string]string `json:"evaluations"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&formData)
+	if err != nil {
+		constants.Log.FctLog(golog.LogLvl_Debug, err.Error())
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+
+	if formData.UserId == "" {
+		http.Error(w, "No user id provided", http.StatusBadRequest)
+		return
+	}
+
+	if len(formData.Evaluations) == 0 {
+		http.Error(w, "No evaluations provided", http.StatusBadRequest)
+		return
+	}
+
+	// ■■■■■■■■■■ Opening output file ■■■■■■■■■■
+
+	csvFile, err := os.OpenFile("output.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		constants.Log.FctLog(golog.LogLvl_Debug, err.Error())
+		http.Error(w, "Error while opening file", http.StatusInternalServerError)
+		return
+	}
+	defer csvFile.Close()
+
+	fi, err := csvFile.Stat()
+	if err != nil {
+		constants.Log.FctLog(golog.LogLvl_Debug, err.Error())
+		http.Error(w, "Error while getting file stat", http.StatusInternalServerError)
+		return
+	}
+
+	// ■■■■■■■■■■ Writing CSV header ■■■■■■■■■■
+
+	if fi.Size() == 0 {
+		csvHeader := "user;c1;e1;c2;e2;c3;e3;c4;e4;c5;e5\n"
+		_, err = csvFile.WriteString(csvHeader)
+		if err != nil {
+			constants.Log.FctLog(golog.LogLvl_Debug, err.Error())
+			http.Error(w, "Error writing to file", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// ■■■■■■■■■■ Writing CSV row ■■■■■■■■■■
+
+	csvRow := formData.UserId
+	for colorIndexStr, evaluationStr := range formData.Evaluations {
+		colorIndex, err := strconv.Atoi(colorIndexStr)
+		if err != nil {
+			constants.Log.FctLog(golog.LogLvl_Err, "   = %s", err)
+			http.Error(w, "Bad request", http.StatusBadRequest)
+		}
+
+		evaluation, err := strconv.Atoi(evaluationStr)
+		if err != nil {
+			constants.Log.FctLog(golog.LogLvl_Err, "   = %s", err)
+			http.Error(w, "Bad request", http.StatusBadRequest)
+		}
+
+		color := fctGetColor(colorIndex)
+		csvRow += fmt.Sprintf(";#%s;%d", color.Value, evaluation)
+	}
+	csvRow += "\n"
+
+	_, err = csvFile.WriteString(csvRow)
+	if err != nil {
+		constants.Log.FctLog(golog.LogLvl_Debug, err.Error())
+		http.Error(w, "Error writing to file", http.StatusInternalServerError)
+		return
+	}
+
+}
+
+type colorTyp struct {
 	Value string
 	Name  string
 }
 
-const ColorsLength = 1566
+const colorsLength = 1566
 
-func GetColor(index int) ColorTyp {
-	if index < 0 || index > ColorsLength {
-		return ColorTyp{Value: "", Name: ""}
+func fctGetColor(index int) colorTyp {
+	if index < 0 || index > colorsLength {
+		return colorTyp{Value: "", Name: ""}
 	}
 
 	return colors[index]
@@ -21,7 +160,7 @@ func GetBrightness(hex string) int {
 	// if (m) var r = parseInt(m[0], 16), g = parseInt(m[1], 16), b = parseInt(m[2], 16);
 }
 
-var colors = [...]ColorTyp{
+var colors = [...]colorTyp{
 	{"000000", "Black"},
 	{"000080", "Navy Blue"},
 	{"0000C8", "Dark Blue"},

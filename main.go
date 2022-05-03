@@ -2,12 +2,11 @@ package main
 
 import (
 	"color-generator/constants"
-	"color-generator/pkg/gohtml"
+	"color-generator/pkg/colors"
 	"fmt"
 	"github.com/bamboutech/golog"
 	"log"
 	"net/http"
-	"os/exec"
 )
 
 func main() {
@@ -28,11 +27,14 @@ func main() {
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	mux.HandleFunc("/", gohtml.Handler)
+	mux.HandleFunc("/", colors.GenerationHandler)
+
+	mux.HandleFunc("/post", colors.EvaluationHandler)
 
 	// ■■■■■■■■■■ Server ■■■■■■■■■■
 
 	constants.Log.FctLog(golog.LogLvl_Info, "---------- Application starting on port %d ----------", constants.PORT)
-	_ = exec.Command("explorer", "http://127.0.0.1:"+fmt.Sprintf("%d", constants.PORT)).Run()
+	// url := "http://127.0.0.1:" + fmt.Sprintf("%d", constants.PORT)
+	// _ = exec.Command("explorer", url).Run()
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", constants.PORT), mux))
 }

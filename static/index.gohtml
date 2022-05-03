@@ -7,8 +7,45 @@
             height: 100vh;
             width: 100vw;
 
+            display: flex;
+
+            justify-content: center;
+
             margin: 0;
         }
+
+        .validate {
+            width: 33vw;
+            height: 5vh;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            position: absolute;
+            z-index: 10;
+            bottom: 0;
+
+            margin-bottom: 5vh;
+
+            font-family: Inter, sans-serif;
+            font-size: 1.5em;
+            color: white;
+
+            border-radius: 10px;
+            box-shadow: rgba(0, 0, 0, 0.25) 0 14px 28px, rgba(0, 0, 0, 0.22) 0 10px 10px;
+            background-color: #2ecc71;
+        }
+
+        .validate:hover {
+            cursor: pointer;
+
+            transition: all .2s ease-in-out;
+            background-color: #1ab85d;
+
+
+        }
+
         .colors {
             height: 100vh;
             width: 100vw;
@@ -16,9 +53,10 @@
             display: flex;
             flex-direction: row;
         }
+
         .color {
             height: 100%;
-            width:20%;
+            width: 20%;
 
             display: flex;
             flex-direction: column;
@@ -26,54 +64,190 @@
             justify-content: flex-end;
             align-items: center;
 
-
             text-align: center;
         }
 
-        .color-interaction {
+        .color-content {
             display: flex;
             flex-direction: column;
+
+            padding-bottom: 15vh;
         }
+
+        .color-evaluation {
+            display: flex;
+            flex-direction: row;
+
+            justify-content: space-between;
+
+            padding-bottom: 1rem;
+        }
+
+        .color-evaluation-item {
+            height: 40px;
+            width: 40px;
+
+            display: flex;
+
+            justify-content: center;
+            align-items: center;
+
+            margin-left: 0.1rem;
+            margin-right: 0.1rem;
+        }
+
+        .color-evaluation-item.active, .color-evaluation-item.active:hover {
+            background-color: rgba(240, 255, 255, 0.4);
+            border-radius: 10px;
+        }
+
+        .color-evaluation-item:hover {
+            background-color: rgba(240, 255, 255, 0.2);
+            border-radius: 10px;
+
+            cursor: pointer;
+        }
+
+
         .color-hex {
             font-family: "Gill Sans MT", serif;
             font-size: 2em;
-            font-weight: bold;
 
             -webkit-font-smoothing: antialiased;
         }
+
         .color-name {
-            font-family: Inter,sans-serif;
+            font-family: Inter, sans-serif;
             font-size: 1em;
         }
 
+        i.svg-heart {
+            height: 24px;
+            width: 24px;
+            background-size: 100% 100%;
+            background-image: url("/static/heart-outline.svg");
+        }
+
+        i.svg-heart-half {
+            height: 24px;
+            width: 24px;
+            background-size: 100% 100%;
+            background-image: url("/static/heart-half-outline.svg");
+        }
+
+        i.svg-heart-crack {
+            height: 24px;
+            width: 24px;
+            background-size: 100% 100%;
+            background-image: url("/static/heart-crack-outline.svg");
+        }
     </style>
 </head>
 <body>
 
+<div class="validate" style="display: flex">Validate</div>
+
 <div class="colors">
-    {{range $id, $color := .colors}}
-        <div class="color" id=""{{$id}} style="background-color: #{{$color.Value}}">
-            <div class="color-interaction">
-                <button>OK</button>
-                <button>KO</button>
+    {{range $colorId, $color := .colors}}
+        <div class="color" id="{{$colorId}}" style="background-color: #{{$color.Value}}">
+            <div class="color-content">
+                <div class="color-evaluation">
+                    <div class="color-evaluation-item" id="2">
+                        <i class="svg-heart"></i>
+                    </div>
+                    <div class="color-evaluation-item" id="1">
+                        <i class="svg-heart-half"></i>
+                    </div>
+                    <div class="color-evaluation-item" id="0">
+                        <i class="svg-heart-crack"></i>
+                    </div>
+
+                </div>
+
+                <div class="color-hex">{{$color.Value}}</div>
+                <div class="color-name">{{$color.Name}}</div>
             </div>
-            <div class="color-hex">{{$color.Value}}</div>
-            <div class="color-name">{{$color.Name}}</div>
         </div>
     {{end}}
 </div>
 
 <script>
+    const validate = document.querySelector(".validate");
+    validate.addEventListener("click", () => {
+        const params = new URLSearchParams(location.search);
+        const userId = params.get('userId');
+        fctSendEvaluation(userId, fctGetEvaluations());
+    });
+
+    function fctSendEvaluation(userId, evaluations) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://localhost:8080/post");
+
+        xhr.setRequestHeader("Access-Control-Allow-Origin", "*");
+        xhr.setRequestHeader('Access-Control-Allow-Credentials', 'true');
+
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onload = () => console.log(xhr.responseText);
+        const data = `{
+            "user_id": "${userId}",
+            "evaluations": ${JSON.stringify(evaluations)}
+        }`;
+
+        console.log(data);
+
+
+        xhr.send(data);
+    }
+
     const colors = document.querySelectorAll('.color');
     colors.forEach(item => {
-        item.addEventListener('mouseover', () => {
-            console.log('mouseover');
-            item.querySelector('.color-interaction').style.visibility = 'visible';
+        const evaluationsItems = item.querySelectorAll('.color-evaluation-item');
+        evaluationsItems.forEach(evalItem => {
+            evalItem.addEventListener('click', () => {
+                // If contains active class, remove it
+                if (evalItem.classList.contains('active')) {
+                    evalItem.classList.remove('active');
+                } else {
+                    // Remove old active class on another eval item
+                    evaluationsItems.forEach(ei => {
+                        if (ei.id === evalItem.id) {
+                            return;
+                        }
+
+                        ei.classList.remove('active');
+                    });
+
+                    evalItem.classList.add('active');
+                }
+
+                // Check for all active evaluation items
+                console.log(fctGetEvaluations());
+                const activeItems = fctGetEvaluations();
+                if (Object.keys(activeItems).length !== 5) {
+                    document.querySelector('.validate').style.display = 'none';
+                } else {
+                    document.querySelector('.validate').style.display = 'flex';
+                }
+            });
+
         });
-        item.addEventListener('mouseleave', () => {
-            item.querySelector('.color-interaction').style.display = 'hidden';
+
+    });
+
+    function fctGetEvaluations() {
+        const activeItems = {};
+
+        const colors = document.querySelectorAll('.color');
+        colors.forEach(item => {
+            const activeItem = item.querySelector('.color-evaluation-item.active');
+            if (activeItem) {
+                activeItems[item.id] = activeItem.id;
+            }
         });
-    })
+
+        return activeItems;
+    }
 </script>
 </body>
 </html>
