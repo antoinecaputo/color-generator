@@ -211,41 +211,17 @@
 
     const validate = document.querySelector(".validate");
     validate.addEventListener("click", () => {
-        const evaluations = fctGetEvaluations();
-        if(Object.keys(evaluations).length === 0) {
-            return;
-        }
-
-        const params = new URLSearchParams(location.search);
-        const userId = params.get('userId');
-        fctSendEvaluation(userId, evaluations);
-
-        location.reload();
+        fctValidate();
     });
 
+    // Keyboard commands
+    document.onkeydown = (e) => {
+        if (e.code === 'Space') location.reload();
+        else if (e.code === 'Enter') fctValidate();
+    };
 
 
-    function fctSendEvaluation(userId, evaluations) {
-        const xhr = new XMLHttpRequest();
-        xhr.open("POST", "http://localhost:8080/post");
-
-        xhr.setRequestHeader("Access-Control-Allow-Origin", "*");
-        xhr.setRequestHeader('Access-Control-Allow-Credentials', 'true');
-
-        xhr.setRequestHeader("Accept", "application/json");
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.onload = () => console.log(xhr.responseText);
-        const data = `{
-            "user_id": "${userId}",
-            "evaluations": ${JSON.stringify(evaluations)}
-        }`;
-
-        console.log(data);
-
-
-        xhr.send(data);
-    }
-
+    // Color evaluation buttons
     const colors = document.querySelectorAll('.color');
     colors.forEach(item => {
         const evaluationsItems = item.querySelectorAll('.color-evaluation-item');
@@ -272,6 +248,7 @@
 
     });
 
+
     function fctGetEvaluations() {
         const activeItems = {};
 
@@ -282,6 +259,38 @@
         });
 
         return activeItems;
+    }
+    function fctValidate() {
+        const evaluations = fctGetEvaluations();
+        if(Object.keys(evaluations).length === 0) {
+            return;
+        }
+
+        const params = new URLSearchParams(location.search);
+        const userId = params.get('userId');
+        fctSendEvaluation(userId, evaluations);
+
+        location.reload();
+    }
+    function fctSendEvaluation(userId, evaluations) {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "http://localhost:8080/post");
+
+        xhr.setRequestHeader("Access-Control-Allow-Origin", "*");
+        xhr.setRequestHeader('Access-Control-Allow-Credentials', 'true');
+
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onload = () => console.log(xhr.responseText);
+        const data = `{
+            "user_id": "${userId}",
+            "evaluations": ${JSON.stringify(evaluations)}
+        }`;
+
+        console.log(data);
+
+
+        xhr.send(data);
     }
 </script>
 </body>

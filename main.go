@@ -35,6 +35,6 @@ func main() {
 
 	constants.Log.FctLog(golog.LogLvl_Info, "---------- Application starting on port %d ----------", constants.PORT)
 	// url := "http://127.0.0.1:" + fmt.Sprintf("%d", constants.PORT)
-	// _ = exec.Command("explorer", url).Run()
+	//	 _ = exec.Command("explorer", url).Run()
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", constants.PORT), mux))
 }
