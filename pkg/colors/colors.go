@@ -23,9 +23,15 @@ func GenerationHandler(w http.ResponseWriter, r *http.Request) {
 	// ■■■■■■■■■■ Colors generation ■■■■■■■■■■
 
 	tmplColors := make(map[int]colorTyp, 5)
-	for i := 0; i < 5; i++ {
+	var i int
+	for i < 5 {
 		randIndex := rand.Intn(colorsLength)
+		if _, exist := tmplColors[randIndex]; exist {
+			continue
+		}
+
 		tmplColors[randIndex] = fctGetColor(randIndex)
+		i++
 	}
 
 	// ■■■■■■■■■■ HTML Output ■■■■■■■■■■
@@ -139,13 +145,6 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-type colorTyp struct {
-	Value string
-	Name  string
-}
-
-const colorsLength = 1566
-
 func fctGetColor(index int) colorTyp {
 	if index < 0 || index > colorsLength {
 		return colorTyp{Value: "", Name: ""}
@@ -154,11 +153,12 @@ func fctGetColor(index int) colorTyp {
 	return colors[index]
 }
 
-func GetBrightness(hex string) int {
-	return 100
-	// var m = color.substr(1).match(color.length == 7 ? /(\S{2})/g : /(\S{1})/g);
-	// if (m) var r = parseInt(m[0], 16), g = parseInt(m[1], 16), b = parseInt(m[2], 16);
+type colorTyp struct {
+	Value string
+	Name  string
 }
+
+const colorsLength = 1566
 
 var colors = [...]colorTyp{
 	{"000000", "Black"},

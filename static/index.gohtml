@@ -14,12 +14,12 @@
             margin: 0;
         }
 
-        .validate {
-            width: 33vw;
+        .interaction {
+            width: 25vw;
             height: 5vh;
 
             display: flex;
-            justify-content: center;
+            justify-content: space-evenly;
             align-items: center;
 
             position: absolute;
@@ -28,23 +28,35 @@
 
             margin-bottom: 5vh;
 
-            font-family: Inter, sans-serif;
-            font-size: 1.5em;
-            color: white;
-
             border-radius: 10px;
-            box-shadow: rgba(0, 0, 0, 0.25) 0 14px 28px, rgba(0, 0, 0, 0.22) 0 10px 10px;
-            background-color: #2ecc71;
+            background-color: #fff;
         }
+        .interaction > .shuffle, .interaction > .validate {
+            width: 40px;
+            height: 40px;
 
-        .validate:hover {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .interaction > .shuffle:hover, .interaction > .validate:hover {
             cursor: pointer;
-
-            transition: all .2s ease-in-out;
-            background-color: #1ab85d;
-
-
+            background-color: rgba(200, 200, 200, 0.4);
+            border-radius: 10px;
         }
+        i.svg-shuffle {
+            height: 24px;
+            width: 24px;
+            background-size: 100% 100%;
+            background-image: url("/static/shuffle.svg");
+        }
+        i.svg-checkmark {
+            height: 24px;
+            width: 24px;
+            background-size: 100% 100%;
+            background-image: url("/static/checkmark.svg");
+        }
+
 
         .colors {
             height: 100vh;
@@ -78,7 +90,7 @@
             display: flex;
             flex-direction: row;
 
-            justify-content: space-between;
+            justify-content: space-evenly;
 
             padding-bottom: 1rem;
         }
@@ -96,11 +108,6 @@
             margin-right: 0.1rem;
         }
 
-        .color-evaluation-item.active, .color-evaluation-item.active:hover {
-            background-color: rgba(240, 255, 255, 0.4);
-            border-radius: 10px;
-        }
-
         .color-evaluation-item:hover {
             background-color: rgba(240, 255, 255, 0.2);
             border-radius: 10px;
@@ -108,18 +115,23 @@
             cursor: pointer;
         }
 
-
-        .color-hex {
-            font-family: "Gill Sans MT", serif;
-            font-size: 2em;
-
-            -webkit-font-smoothing: antialiased;
+        .color-evaluation-item.active, .color-evaluation-item.active:hover {
+            background-color: rgba(240, 255, 255, 0.4);
+            border-radius: 10px;
         }
 
-        .color-name {
-            font-family: Inter, sans-serif;
-            font-size: 1em;
+        .color-evaluation-item.active > i.svg-heart {
+            background-image: url("/static/heart-filled.svg");
         }
+
+        .color-evaluation-item.active > i.svg-heart-half {
+            background-image: url("/static/heart-half-filled.svg");
+        }
+
+        .color-evaluation-item.active > i.svg-heart-dislike {
+            background-image: url("/static/heart-dislike-filled.svg");
+        }
+
 
         i.svg-heart {
             height: 24px;
@@ -135,33 +147,53 @@
             background-image: url("/static/heart-half-outline.svg");
         }
 
-        i.svg-heart-crack {
+        i.svg-heart-dislike {
             height: 24px;
             width: 24px;
             background-size: 100% 100%;
-            background-image: url("/static/heart-crack-outline.svg");
+            background-image: url("/static/heart-dislike-outline.svg");
+        }
+
+        .color-hex {
+            font-family: "Gill Sans MT", serif;
+            font-size: 2em;
+
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .color-name {
+            font-family: Inter, sans-serif;
+            font-size: 1em;
         }
     </style>
 </head>
 <body>
 
-<div class="validate" style="display: flex">Validate</div>
+<div class="interaction" style="display: flex">
+    <div class="shuffle">
+        <i class="svg-shuffle"></i>
+    </div>
+    <div class="validate">
+        <i class="svg-checkmark"></i>
+    </div>
+</div>
 
 <div class="colors">
     {{range $colorId, $color := .colors}}
         <div class="color" id="{{$colorId}}" style="background-color: #{{$color.Value}}">
             <div class="color-content">
                 <div class="color-evaluation">
-                    <div class="color-evaluation-item" id="2">
-                        <i class="svg-heart"></i>
+                    <div class="color-evaluation-item" id="-1">
+                        <i class="svg-heart-dislike"></i>
                     </div>
+                    <!--
                     <div class="color-evaluation-item" id="1">
                         <i class="svg-heart-half"></i>
                     </div>
-                    <div class="color-evaluation-item" id="0">
-                        <i class="svg-heart-crack"></i>
+                     -->
+                    <div class="color-evaluation-item" id="1">
+                        <i class="svg-heart"></i>
                     </div>
-
                 </div>
 
                 <div class="color-hex">{{$color.Value}}</div>
@@ -172,12 +204,26 @@
 </div>
 
 <script>
+    const shuffle = document.querySelector('.shuffle');
+    shuffle.addEventListener('click', () => {
+        location.reload();
+    });
+
     const validate = document.querySelector(".validate");
     validate.addEventListener("click", () => {
+        const evaluations = fctGetEvaluations();
+        if(Object.keys(evaluations).length === 0) {
+            return;
+        }
+
         const params = new URLSearchParams(location.search);
         const userId = params.get('userId');
-        fctSendEvaluation(userId, fctGetEvaluations());
+        fctSendEvaluation(userId, evaluations);
+
+        location.reload();
     });
+
+
 
     function fctSendEvaluation(userId, evaluations) {
         const xhr = new XMLHttpRequest();
@@ -220,15 +266,6 @@
 
                     evalItem.classList.add('active');
                 }
-
-                // Check for all active evaluation items
-                console.log(fctGetEvaluations());
-                const activeItems = fctGetEvaluations();
-                if (Object.keys(activeItems).length !== 5) {
-                    document.querySelector('.validate').style.display = 'none';
-                } else {
-                    document.querySelector('.validate').style.display = 'flex';
-                }
             });
 
         });
@@ -241,9 +278,7 @@
         const colors = document.querySelectorAll('.color');
         colors.forEach(item => {
             const activeItem = item.querySelector('.color-evaluation-item.active');
-            if (activeItem) {
-                activeItems[item.id] = activeItem.id;
-            }
+            activeItems[item.id] = activeItem ? activeItem.id : "0";
         });
 
         return activeItems;
