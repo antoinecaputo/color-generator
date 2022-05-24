@@ -7,16 +7,45 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/bamboutech/golog"
+	"html/template"
+	"math"
 	"math/rand"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 )
 
+type TemplateColorTyp struct {
+	Index int
+	Color colors.ColorTyp
+}
+
 func GenerationHandler(w http.ResponseWriter, r *http.Request) {
 
-	userId := r.URL.Query().Get("userId")
+	rand.Seed(time.Now().UnixNano())
+
+	constants.Log.FctLog(golog.LogLvl_Debug, "Getting user id from cookie")
+	c, err := r.Cookie("userId")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			constants.Log.FctLog(golog.LogLvl_Err, "   = No cookie found, generating it")
+
+			c = &http.Cookie{
+				Name:    "userId",
+				Value:   strconv.Itoa(rand.Int()),
+				Expires: time.Now().Add(365 * 24 * time.Hour),
+			}
+			http.SetCookie(w, c)
+		} else {
+			constants.Log.FctLog(golog.LogLvl_Err, "   = Error getting cookie: %s", err)
+			http.Error(w, "Error getting cookie", http.StatusInternalServerError)
+		}
+	}
+	constants.Log.FctLog(golog.LogLvl_Debug, "   = OK, got %q", c.Value)
+
+	userId := c.Value
 	if userId == "" {
 		http.Error(w, "No user id provided", http.StatusBadRequest)
 		return
@@ -25,36 +54,60 @@ func GenerationHandler(w http.ResponseWriter, r *http.Request) {
 	// ■■■■■■■■■■ Colors generation ■■■■■■■■■■
 
 	rand.Seed(time.Now().UnixNano())
+	paletteId := rand.Int()
 
-	tmplColors := make([]interface{}, 5)
+	tmplColors := make([]TemplateColorTyp, 5)
 	tmplColorsIndexes := make(map[int]bool, 5)
 	var i int
 	for i < 5 {
 		randIndex := rand.Intn(colors.FctGetColorsLength())
-		if _, exist := tmplColorsIndexes[randIndex]; exist {
-			continue
+		/*
+			if _, exist := tmplColorsIndexes[randIndex]; exist {
+				continue
+			}
+		*/
+
+		color := colors.FctGetColor(randIndex)
+
+		switch i {
+		// Title
+		case 0:
+			// Get a color that is not too close to the primary color
+			if 255-color.Luma() < 100 {
+				continue
+			}
+		// Text secondary
+		case 2:
+			primaryColor := tmplColors[1].Color
+			// Get a color that is not too close to the primary color
+			if math.Abs(float64(color.Luma()-primaryColor.Luma())) < 125 {
+				continue
+			}
 		}
+
 		tmplColorsIndexes[randIndex] = true
 
-		tmplColors[i] = struct {
-			Index int
-			Color colors.ColorTyp
-		}{
+		tmplColors[i] = TemplateColorTyp{
 			Index: randIndex,
-			Color: colors.FctGetColor(randIndex),
+			Color: color,
 		}
+
 		i++
 	}
 
 	// ■■■■■■■■■■ HTML Output ■■■■■■■■■■
 
 	templateVar := map[string]interface{}{
-		"userId": userId,
-		"colors": tmplColors,
+		"paletteId": paletteId,
+		"colors":    tmplColors,
+	}
+
+	funcMap := template.FuncMap{
+		"fctColorPosition": colors.FctColorPosition,
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	gohtml.FctOutputHTML(w, "./static/index.gohtml", templateVar)
+	gohtml.FctOutputHTML(w, "/static/index.gohtml", templateVar, funcMap)
 }
 
 func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
@@ -69,25 +122,35 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 
+	// ■■■■■■■■■■ Get userId from cookie ■■■■■■■■■■
+
+	constants.Log.FctLog(golog.LogLvl_Debug, "Getting user id from cookie")
+	c, err := r.Cookie("userId")
+	if err != nil {
+		constants.Log.FctLog(golog.LogLvl_Err, "   = Error getting cookie: %s", err)
+		http.Error(w, "Error getting cookie", http.StatusInternalServerError)
+	}
+	userId := c.Value
+	if userId == "" {
+		constants.Log.FctLog(golog.LogLvl_Err, "   = No user id provided")
+		http.Error(w, "No user id provided", http.StatusBadRequest)
+	}
+	constants.Log.FctLog(golog.LogLvl_Debug, "   = OK, got %q", c.Value)
+
 	// ■■■■■■■■■■ Get form data ■■■■■■■■■■
 
 	var formData struct {
-		UserId      string            `json:"user_id"`
+		PaletteId   string            `json:"paletteId"`
 		Evaluations map[string]string `json:"evaluations"`
 	}
 
 	constants.Log.FctLog(golog.LogLvl_Debug, "Decoding form data")
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&formData)
+	err = decoder.Decode(&formData)
 	if err != nil {
 		constants.Log.FctLog(golog.LogLvl_Err, "   = %s", err.Error())
 		http.Error(w, "Bad request", http.StatusBadRequest)
-	}
-
-	if formData.UserId == "" {
-		constants.Log.FctLog(golog.LogLvl_Err, "   = No user id provided")
-		http.Error(w, "No user id provided", http.StatusBadRequest)
 	}
 
 	if len(formData.Evaluations) == 0 {
@@ -101,7 +164,7 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 
 	constants.Log.FctLog(golog.LogLvl_Debug, "Opening output file")
 
-	csvFile, err := os.OpenFile("output.csv", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	csvFile, err := os.OpenFile(filepath.Join(constants.WorkingDir, "output.csv"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		constants.Log.FctLog(golog.LogLvl_Err, "   = %s", err.Error())
 		http.Error(w, "Error while opening file", http.StatusInternalServerError)
@@ -131,9 +194,9 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 
 	// ■■■■■■■■■■ Writing CSV row ■■■■■■■■■■
 
-	user := formData.UserId
+	user := userId
 	date := time.Now()
-	i := 1
+	i := 0
 
 	for colorIndexStr, evaluationStr := range formData.Evaluations {
 		constants.Log.FctLog(golog.LogLvl_Debug, "Getting color index")
@@ -153,21 +216,18 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 		constants.Log.FctLog(golog.LogLvl_Debug, "   = OK")
 
 		color := colors.FctGetColor(colorIndex)
-		var colorName string
-		switch i {
-		case 1:
-			colorName = constants.COLOR_1
-		case 2:
-			colorName = constants.COLOR_2
-		case 3:
-			colorName = constants.COLOR_3
-		case 4:
-			colorName = constants.COLOR_4
-		case 5:
-			colorName = constants.COLOR_5
-		}
 
-		csvRow := fmt.Sprintf("%s,%s,%s,%s,%d\n", user, date.Format("2006/02/01"), colorName, color.Value, evaluation)
+		colorName := colors.FctColorPosition(i)
+
+		constants.Log.FctLog(golog.LogLvl_Debug, "Convert hex to rgb")
+		rgb, err := colors.FctHex2RGB(color.Value)
+		if err != nil {
+			constants.Log.FctLog(golog.LogLvl_Err, "   = %s", err.Error())
+			http.Error(w, "Bad request", http.StatusBadRequest)
+		}
+		constants.Log.FctLog(golog.LogLvl_Debug, "   = OK")
+
+		csvRow := fmt.Sprintf("%s,%s,%s,%s,%d,%d,%d,%d\n", user, date.Format("2006/01/02"), formData.PaletteId, colorName, rgb.Red, rgb.Blue, rgb.Green, evaluation)
 
 		constants.Log.FctLog(golog.LogLvl_Debug, "Writing CSV row")
 		_, err = csvFile.WriteString(csvRow)

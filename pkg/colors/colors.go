@@ -1,5 +1,66 @@
 package colors
 
+import (
+	"color-generator/constants"
+	"github.com/bamboutech/golog"
+	"strconv"
+)
+
+func FctColorPosition(index int) string {
+	switch index {
+	case 0:
+		return constants.COLOR_1
+	case 1:
+		return constants.COLOR_2
+	case 2:
+		return constants.COLOR_3
+	case 3:
+		return constants.COLOR_4
+	case 4:
+		return constants.COLOR_5
+	}
+
+	return ""
+}
+
+type ColorTyp struct {
+	Value string
+	Name  string
+}
+
+func (c ColorTyp) Luma() int {
+	rgb, err := FctHex2RGB(c.Value)
+	if err != nil {
+		constants.Log.FctLog(golog.LogLvl_Err, "   = Error: %s", err.Error())
+		return 0
+	}
+
+	luma := (0.2126 * float64(rgb.Red)) + (0.7152 * float64(rgb.Green)) + (0.0722 * float64(rgb.Blue))
+
+	return int(luma)
+}
+
+type RBGTyp struct {
+	Red   uint8
+	Green uint8
+	Blue  uint8
+}
+
+func FctHex2RGB(hex string) (RBGTyp, error) {
+	values, err := strconv.ParseUint(hex, 16, 32)
+	if err != nil {
+		return RBGTyp{}, err
+	}
+
+	rgb := RBGTyp{
+		Red:   uint8(values >> 16),
+		Green: uint8((values >> 8) & 0xFF),
+		Blue:  uint8(values & 0xFF),
+	}
+
+	return rgb, nil
+}
+
 func FctGetColor(index int) ColorTyp {
 	if index < 0 || index > colorsLength {
 		return ColorTyp{Value: "", Name: ""}
@@ -10,11 +71,6 @@ func FctGetColor(index int) ColorTyp {
 
 func FctGetColorsLength() int {
 	return colorsLength
-}
-
-type ColorTyp struct {
-	Value string
-	Name  string
 }
 
 const colorsLength = 1566
