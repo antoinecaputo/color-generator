@@ -6,13 +6,20 @@ import (
 
 var Log *golog.TypLog
 
-const PORT = 8080
+const LogLevel = golog.LogLvl_Err
+
+const WorkingDir = "./"
 
 const (
-	CSV_HEADER = "user,date,color,value,evaluation"
+	IP   = "127.0.0.1"
+	PORT = 9090
+)
+
+const (
+	CSV_HEADER = "user,date,palette,color,r,g,b,evaluation"
 	COLOR_1    = "primary"
-	COLOR_2    = "text_primary"
-	COLOR_3    = "text_secondary"
+	COLOR_2    = "text"
+	COLOR_3    = "background"
 	COLOR_4    = "button_primary"
 	COLOR_5    = "button_secondary"
 )
