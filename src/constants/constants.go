@@ -8,7 +8,7 @@ var Log *golog.TypLog
 
 const LogLevel = golog.LogLvlDebug
 
-const WorkingDir = "./"
+const WorkingDir = "data/"
 
 const (
 	IP   = "127.0.0.1"

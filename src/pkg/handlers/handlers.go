@@ -64,7 +64,7 @@ func GenerationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	gohtml.FctOutputHTML(w, "/static/index.gohtml", templateVar, funcMap)
+	gohtml.FctOutputHTML(w, "index.gohtml", templateVar, funcMap)
 }
 
 func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
@@ -132,10 +132,22 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 
 	constants.Log.FctLog(golog.LogLvlDebug, "Opening output file")
 
-	csvFile, err := os.OpenFile(filepath.Join(constants.WorkingDir, "output.csv"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	executablePath, err := os.Executable()
+	if err != nil {
+		constants.Log.FctLog(golog.LogLvlErr, "   = %s", err.Error())
+		http.Error(w, "Error while getting executable path", http.StatusInternalServerError)
+		return
+	}
+
+	executableDir := filepath.Dir(executablePath)
+
+	workingDir := filepath.Join(executableDir, constants.WorkingDir)
+
+	csvFile, err := os.OpenFile(filepath.Join(workingDir, "output.csv"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		constants.Log.FctLog(golog.LogLvlErr, "   = %s", err.Error())
 		http.Error(w, "Error while opening file", http.StatusInternalServerError)
+		return
 	}
 	defer csvFile.Close()
 
@@ -155,6 +167,7 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			constants.Log.FctLog(golog.LogLvlErr, "   = %s", err.Error())
 			http.Error(w, "Error writing file", http.StatusInternalServerError)
+			return
 		}
 	}
 
@@ -172,6 +185,7 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			constants.Log.FctLog(golog.LogLvlErr, "   = %s", err)
 			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
 		}
 		constants.Log.FctLog(golog.LogLvlDebug, "   = OK")
 
@@ -180,6 +194,7 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			constants.Log.FctLog(golog.LogLvlErr, "   = %s", err.Error())
 			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
 		}
 		constants.Log.FctLog(golog.LogLvlDebug, "   = OK")
 
@@ -192,6 +207,7 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			constants.Log.FctLog(golog.LogLvlErr, "   = %s", err.Error())
 			http.Error(w, "Bad request", http.StatusBadRequest)
+			return
 		}
 		constants.Log.FctLog(golog.LogLvlDebug, "   = OK")
 
@@ -202,6 +218,7 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			constants.Log.FctLog(golog.LogLvlErr, "   = %s", err.Error())
 			http.Error(w, "Error writing to file", http.StatusInternalServerError)
+			return
 		}
 		constants.Log.FctLog(golog.LogLvlDebug, "   = OK")
 

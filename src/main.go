@@ -9,9 +9,19 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 )
 
 func main() {
+
+	executablePath, err := os.Executable()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	executableDir := filepath.Dir(executablePath)
+
+	workingDir := filepath.Join(executableDir, constants.WorkingDir)
 
 	// ■■■■■■■■■■ Log ■■■■■■■■■■
 
@@ -28,7 +38,7 @@ func main() {
 		return
 	}
 
-	err = constants.Log.FctAddFile("color-generator.log")
+	err = constants.Log.FctAddFile(path.Join(workingDir, "/color-generator.log"))
 	if err != nil {
 		log.Fatalln(err)
 		return
@@ -40,7 +50,7 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	fs := http.FileServer(http.Dir(path.Join(constants.WorkingDir, "/static")))
+	fs := http.FileServer(http.Dir(path.Join(executableDir, "/static")))
 	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
 	mux.HandleFunc("/", handlers.GenerationHandler)
