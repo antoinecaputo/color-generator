@@ -64,16 +64,62 @@ func FctHex2RGB(hex string) (RBGTyp, error) {
 	return rgb, nil
 }
 
+type PaletteColorTyp struct {
+	Index int
+	Color ColorTyp
+}
+
+func FctGeneratePalette() (uuid.UUID, []PaletteColorTyp) {
+
+	paletteColors := make([]PaletteColorTyp, 5)
+	paletteColorsIndexes := make(map[int]bool, 5)
+
+	var i int
+	for i < 5 {
+		randIndex := rand.Intn(colorsLength)
+		/*
+			if _, exist := tmplColorsIndexes[randIndex]; exist {
+				continue
+			}
+		*/
+
+		color := FctGetColor(randIndex)
+
+		switch i {
+		// Title
+		case 0:
+			// Get a color that is not too close to the primary color
+			if 255-color.Luma() < 100 {
+				continue
+			}
+		// Text secondary
+		case 2:
+			primaryColor := paletteColors[1].Color
+			// Get a color that is not too close to the primary color
+			if math.Abs(float64(color.Luma()-primaryColor.Luma())) < 125 {
+				continue
+			}
+		}
+
+		paletteColorsIndexes[randIndex] = true
+
+		paletteColors[i] = PaletteColorTyp{
+			Index: randIndex,
+			Color: color,
+		}
+
+		i++
+	}
+
+	return uuid.New(), paletteColors
+}
+
 func FctGetColor(index int) ColorTyp {
 	if index < 0 || index > colorsLength {
 		return ColorTyp{Value: "", Name: ""}
 	}
 
 	return colors[index]
-}
-
-func FctGetColorsLength() int {
-	return colorsLength
 }
 
 const colorsLength = 1566
