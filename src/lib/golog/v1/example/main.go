@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"endiatx/lib/golog"
 	"fmt"
+	"lib/golog"
 	"log"
 	"os"
 )
