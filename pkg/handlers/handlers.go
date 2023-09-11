@@ -210,7 +210,7 @@ func EvaluationHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func CORSHandler(w *http.ResponseWriter, r *http.Request) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "http://127.0.0.1:"+strconv.Itoa(constants.PORT))
+	(*w).Header().Set("Access-Control-Allow-Origin", "http://"+constants.IP+":"+strconv.Itoa(constants.PORT))
 	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
