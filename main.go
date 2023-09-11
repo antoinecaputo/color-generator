@@ -4,9 +4,10 @@ import (
 	"color-generator/constants"
 	"color-generator/pkg/handlers"
 	"fmt"
-	"github.com/bamboutech/golog"
+	"lib/golog"
 	"log"
 	"net/http"
+	"os"
 	"path"
 )
 
@@ -14,12 +15,26 @@ func main() {
 
 	// ■■■■■■■■■■ Log ■■■■■■■■■■
 
-	logger, err := golog.FctCreateLogger(golog.TrcMth_File, constants.LogLevel, "bamboutech", "color-generator.log")
+	logger, err := golog.NewLogger(constants.LogLevel)
 	if err != nil {
 		log.Fatalln(err)
 		return
 	}
 	constants.Log = logger
+
+	err = constants.Log.FctAddOutput(os.Stdout)
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
+
+	err = constants.Log.FctAddFile("color-generator.log")
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
+
+	constants.Log.Start()
 
 	// ■■■■■■■■■■ Multiplexer ■■■■■■■■■■
 
@@ -34,10 +49,9 @@ func main() {
 
 	// ■■■■■■■■■■ Server ■■■■■■■■■■
 
-	constants.Log.FctLog(golog.LogLvl_Info, "---------- Application starting on port %d ----------", constants.PORT)
-	// url := fmt.Sprintf("%s:%d", constants.IP, constants.PORT)
-	// fmt.Printf("Application starts on %s with default user 0\n", url)
-	// fmt.Printf("http://%s", url)
-	//	 _ = exec.Command("explorer", url).Run()
+	constants.Log.FctLog(golog.LogLvlInfo, "---------- Application starting on port %d ----------", constants.PORT)
+	url := fmt.Sprintf("%s:%d", constants.IP, constants.PORT)
+	fmt.Printf("http://%s", url)
+	// _ = exec.Command("explorer", url).Run()
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", constants.PORT), mux))
 }

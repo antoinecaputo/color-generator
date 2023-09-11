@@ -2,7 +2,10 @@ package colors
 
 import (
 	"color-generator/constants"
-	"github.com/bamboutech/golog"
+	"github.com/google/uuid"
+	"lib/golog"
+	"math"
+	"math/rand"
 	"strconv"
 )
 
@@ -31,7 +34,7 @@ type ColorTyp struct {
 func (c ColorTyp) Luma() int {
 	rgb, err := FctHex2RGB(c.Value)
 	if err != nil {
-		constants.Log.FctLog(golog.LogLvl_Err, "   = Error: %s", err.Error())
+		constants.Log.FctLog(golog.LogLvlErr, "   = Error: %s", err.Error())
 		return 0
 	}
 

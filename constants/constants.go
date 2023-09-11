@@ -1,12 +1,12 @@
 package constants
 
 import (
-	"github.com/bamboutech/golog"
+	"lib/golog"
 )
 
 var Log *golog.TypLog
 
-const LogLevel = golog.LogLvl_Err
+const LogLevel = golog.LogLvlDebug
 
 const WorkingDir = "./"
 
