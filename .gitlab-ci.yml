@@ -1,0 +1,11 @@
+image: docker:stable
+
+services:
+  - docker:dind
+
+build image:
+  stage: build
+  script:
+    - docker build -t registry.gitlab.com/antoinecaputo/color-generator .
+    - docker login registry.gitlab.com -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD
+    - docker push registry.gitlab.com/antoinecaputo/color-generator
